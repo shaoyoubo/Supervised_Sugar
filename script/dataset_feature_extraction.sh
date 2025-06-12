@@ -23,7 +23,9 @@ colmap model_converter \
 colmap image_undistorter \
     --image_path images/ \
     --input_path sparse/0/ \
-    --output_path undistorted/
+    --output_path undistorted/ \
+    --min_scale 1.0 \
+    --max_scale 1.0
     
 # mkdir undistorted/sparse/0/
 # put all the undistorted/sparse/ into undistorted/sparse/0/
