@@ -1,0 +1,3 @@
+[submodule "MoGe"]
+	path = MoGe
+	url = https://github.com/microsoft/MoGe.git
