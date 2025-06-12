@@ -2,6 +2,8 @@
 
 ## MoGe
 
+[MoGe: Unlocking Accurate Monocular Geometry Estimation for Open-Domain Images with Optimal Training Supervision](https://github.com/microsoft/MoGe)
+
 请导入 submodule:
 
 ```sh
@@ -10,7 +12,7 @@ git submodule update
 
 并按照其说明在其文件夹下
 
-```
+```sh
 pip install -r requirements.txt
 ```
 
