@@ -12,7 +12,7 @@ test_environment.yml
 blender/dev_mode.py
 
 nvdiffrast
-
+dataset
 # To remove
 frosting*
 extract_shell.py
