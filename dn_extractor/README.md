@@ -50,6 +50,8 @@ def extract(image_path, output_path, device, fov_x_ = None, resolution_level = 9
 python dsine_tot.py dsine.txt
 ```
 
+如果要使用这个，请把 checkpoints（参考 DSINE 原库）文件夹移动到 dn_extractor 下作为子文件夹
+
 ## [DEPRECATED] DSINE
 
 [Rethinking Inductive Biases for Surface Normal Estimation](https://github.com/baegwangbin/DSINE.git)
