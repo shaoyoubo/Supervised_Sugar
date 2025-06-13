@@ -33,7 +33,7 @@ def write_cameras_json(cameras, out_path):
         json.dump(data, f, indent=2)
 
 if __name__ == "__main__":
-    project_folder = "/root/Projects/Supervised_Sugar/resources/truck"
+    project_folder = "/root/Projects/Supervised_Sugar/dataset/undistorted"
     cams = read_cameras_txt(f"{project_folder}/sparse/0/cameras.txt")
     write_cameras_json(cams, f"{project_folder}/sparse/0/cameras.json")
     print(f"已生成 {len(cams)} 个相机，保存至 cameras.json")

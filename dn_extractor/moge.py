@@ -16,7 +16,7 @@ from moge.utils.vis import colorize_depth, colorize_normal
 import utils3d
 
 def extract(image_path, output_path, device, fov_x_ = None, resolution_level = 9, num_tokens = None, use_fp16 = False):
-    model = MoGeModel.from_pretrained("Ruicheng/moge-vitl").to(device).eval()
+    model = MoGeModel.from_pretrained("Ruicheng/moge-2-vitl-normal").to(device).eval()
     image = cv2.cvtColor(cv2.imread(str(image_path)), cv2.COLOR_BGR2RGB)
     height, width = image.shape[:2]
     image_tensor = torch.tensor(image / 255, dtype=torch.float32, device=device).permute(2, 0, 1)
@@ -42,4 +42,4 @@ def extract(image_path, output_path, device, fov_x_ = None, resolution_level = 9
         }, f)
 
 if __name__ == "__main__":
-    extract("/root/Projects/Supervised_Sugar/resources/truck/images/000001.jpg", "./000001", "cuda:0")
+    extract("/root/Projects/Supervised_Sugar/dataset/undistorted/images/000001.jpg", "./000001", "cuda:0")

@@ -82,4 +82,4 @@ def extract(project_folder, device):
 
 
 if __name__ == '__main__':
-    extract('/root/Projects/Supervised_Sugar/resources/truck/', torch.device("cuda:0"))
+    extract('/root/Projects/Supervised_Sugar/dataset/undistorted/', torch.device("cuda:0"))
