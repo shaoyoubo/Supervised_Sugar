@@ -9,93 +9,13 @@ from sugar_scene.sugar_model import SuGaR
 from sugar_scene.sugar_optimizer import OptimizationParams, SuGaROptimizer
 from sugar_scene.sugar_densifier import SuGaRDensifier
 from sugar_utils.loss_utils import ssim, l1_loss, l2_loss
+from sugar_trainers.coarse_density_and_dn_consistency import depth_normal_consistency_loss
+from sugar_utils.time_dependent_t import LambdaScheduler
 
 from rich.console import Console
 import time
 
-
-def depths_to_points(view, depthmap):
-    """Comes from 2DGS.
-
-    Args:
-        view (_type_): _description_
-        depthmap (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """
-    c2w = (view.world_view_transform.T).inverse()
-    W, H = view.image_width, view.image_height
-    ndc2pix = torch.tensor([
-        [W / 2, 0, 0, (W) / 2],
-        [0, H / 2, 0, (H) / 2],
-        [0, 0, 0, 1]]).float().cuda().T
-    projection_matrix = c2w.T @ view.full_proj_transform
-    intrins = (projection_matrix @ ndc2pix)[:3,:3].T
-    
-    grid_x, grid_y = torch.meshgrid(torch.arange(W, device='cuda').float(), torch.arange(H, device='cuda').float(), indexing='xy')
-    points = torch.stack([grid_x, grid_y, torch.ones_like(grid_x)], dim=-1).reshape(-1, 3)
-    rays_d = points @ intrins.inverse().T @ c2w[:3,:3].T
-    rays_o = c2w[:3,3]
-    points = depthmap.reshape(-1, 1) * rays_d + rays_o
-    return points
-
-
-def depth2normal_2dgs(view, depth):
-    """Comes from 2DGS.
-    
-        view: view camera
-        depth: depthmap 
-    """
-    points = depths_to_points(view, depth).reshape(*depth.shape[1:], 3)
-    output = torch.zeros_like(points)
-    dx = torch.cat([points[2:, 1:-1] - points[:-2, 1:-1]], dim=0)
-    dy = torch.cat([points[1:-1, 2:] - points[1:-1, :-2]], dim=1)
-    normal_map = torch.nn.functional.normalize(torch.cross(dx, dy, dim=-1), dim=-1)
-    output[1:-1, 1:-1, :] = normal_map
-    return output
-
-
-def depth_normal_consistency_loss(
-    depth:torch.Tensor, 
-    normal:torch.Tensor,
-    camera,
-    scale_rendered_normals=False,
-    return_normal_maps=False
-):
-    """_summary_
-
-    Args:
-        depth (torch.Tensor): Has shape (1, height, width).
-        normal (torch.tensor): Has shape (3, height, width). Should be in view space.
-        opacity (torch.Tensor): Has shape (1, height, width).
-        camera (GSCamera): _description_
-
-    Returns:
-        _type_: _description_
-    """
-    
-    # Compute the normals from the depth map in world space.
-    normal_from_depth = depth2normal_2dgs(camera, depth)
-    
-    # Transform the normals from the depth map to the view space (COLMAP convention).
-    normal_from_depth = (normal_from_depth @ camera.world_view_transform[:3,:3]).permute(2, 0, 1)
-    
-    if scale_rendered_normals:
-        # We normalize the normals to have the same scale as the normals from the depth map.
-        normal_view = ((normal - normal.mean()) / normal.std()) * normal_from_depth.std() + normal_from_depth.mean()
-    else:
-        normal_view = normal
-
-    # Compute the error between the normals from the depth map and the rendered normals.    
-    normal_error = (1 - (normal_view * normal_from_depth).sum(dim=0))
-    
-    if return_normal_maps:
-        return normal_error, normal_view, normal_from_depth    
-    return normal_error.mean()
-
-
-def coarse_training_with_density_regularization_and_dn_consistency(args):
+def coarse_training_with_supervised_regularization_and_dn_consistency(args):
     CONSOLE = Console(width=120)
 
     # ====================Parameters====================
@@ -146,6 +66,7 @@ def coarse_training_with_density_regularization_and_dn_consistency(args):
     opacity_lr=0.05
     scaling_lr=0.005
     rotation_lr=0.001
+
         
     # Densifier and pruning
     heavy_densification = False
@@ -642,7 +563,7 @@ def coarse_training_with_density_regularization_and_dn_consistency(args):
                         - (1 - vis_opacities) * torch.log(1 - vis_opacities + 1e-10)
                         ).mean()
                     
-                # Depth-Normal consistency
+                # Depth-Normal consistency 
                 if enforce_depth_normal_consistency and iteration > start_dn_consistency_from:
                     if iteration == start_dn_consistency_from + 1:
                         CONSOLE.print("\n---INFO---\nStarting depth-normal consistency.")
@@ -653,8 +574,15 @@ def coarse_training_with_density_regularization_and_dn_consistency(args):
                         camera=nerfmodel.training_cameras.gs_cameras[camera_indices.item()],
                         scale_rendered_normals=False,
                         return_normal_maps=False,
+                    ) # Depth regularization
+                    normal_error_pre = depth_normal_consistency_loss(
+                        depth=depth_img[None],  # Shape is (1, height, width) 
+                        normal=args.predicted_normal.permute(2, 0, 1),  # Shape is (3, height, width)
+                        camera=nerfmodel.training_cameras.gs_cameras[camera_indices.item()],
+                        scale_rendered_normals=True,
+                        return_normal_maps=False,
                     )
-                    loss = loss + dn_consistency_factor * normal_error
+                    loss = loss + dn_consistency_factor * (normal_error + args.gamma * normal_error_pre)
                 
                 # SuGaR regularization
                 if regularize:
@@ -830,7 +758,26 @@ def coarse_training_with_density_regularization_and_dn_consistency(args):
                                     # Compute regularization loss
                                     sdf_better_normal_loss = (samples_gaussian_normals - (normal_weights[..., None] * closest_gaussian_normals).sum(dim=-2)
                                                               ).pow(2).sum(dim=-1)  # Shape is (n_samples,)
-                                    loss = loss + sdf_better_normal_factor * sdf_better_normal_loss.mean()
+                                    
+                                    external_normals = args.external_normals
+                                    external_normals = external_normals * torch.sign(
+                                        (external_normals * samples_gaussian_normals[:, None]).sum(dim=-1, keepdim=True)
+                                        ).detach()
+                                    external_gaussian_opacities = fields['closest_gaussian_opacities'].detach()  # Shape is (n_samples, n_neighbors)
+                                    externa_normal_weights = ((external_normals - samples_gaussian_normals[:, None]) * closest_gaussian_normals).sum(dim=-1).abs()
+                                    if sdf_better_normal_gradient_through_normal_only:
+                                        externa_normal_weights = externa_normal_weights.detach()
+                                    externa_normal_weights = external_gaussian_opacities * externa_normal_weights / closest_min_scaling.clamp(min=1e-6)**2  # Shape is (n_samples, n_neighbors)
+
+                                    # The weights should have a sum of 1 because of the eikonal constraint
+                                    externa_normal_weights_sum = externa_normal_weights.sum(dim=-1).detach()  # Shape is (n_samples,)
+                                    externa_normal_weights = externa_normal_weights / externa_normal_weights_sum.unsqueeze(-1).clamp(min=1e-6)  # Shape is (n_samples, n_neighbors)
+
+                                    external_sdf_better_normal_loss = sdf_better_normal_loss + (samples_gaussian_normals - (externa_normal_weights[..., None] * closest_gaussian_normals).sum(dim=-2)
+                                                                                  ).pow(2).sum(dim=-1)
+
+                                    lambda_t = LambdaScheduler.get_lambda(epoch)
+                                    loss = loss + (1-lambda_t) * sdf_better_normal_factor * sdf_better_normal_loss.mean() + lambda_t * sdf_better_normal_factor * external_sdf_better_normal_loss.mean()
                             else:
                                 CONSOLE.log("WARNING: No gaussians available for sampling.")
                                 
