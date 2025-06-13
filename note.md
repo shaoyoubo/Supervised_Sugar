@@ -1,4 +1,14 @@
-# 更新：增加 MoGe 作为 depth/normal extractor.
+# 更新：增加 MoGe 作为 depth extractor，增加 DSINE 作为 normal extractor，使用 colmap 的 camera instrinstics 批量生成
+
+## DSINE
+
+[Rethinking Inductive Biases for Surface Normal Estimation](https://github.com/baegwangbin/DSINE.git)
+
+只需要
+
+```sh
+pip install geffnet
+```
 
 ## MoGe
 
@@ -18,7 +28,21 @@ pip install -r requirements.txt
 
 ## dn_extractor
 
-我增加了 MoGe submodule 和 dn_extractor/moge.py，它有一个函数
+- dn_extractor/moge_tot.py：对一个 colmap project，批量操作
+
+```sh
+python moge_tot.py
+```
+
+- dn_extractor/dsine_tot.py：对一个 colmap project，批量操作
+
+```sh
+python dsine_tot.py dsine.txt
+```
+
+上面两个命令的 colmap project path 要在程序的 main 中写好（`extract(path, torch.device("cuda:0"))`），这个 path 要有 images 子文件夹和 sparse 子文件夹
+
+- dn_extractor/moge.py:
 
 ```python
 def extract(image_path, output_path, device, fov_x_ = None, resolution_level = 9, num_tokens = None, use_fp16 = False):
