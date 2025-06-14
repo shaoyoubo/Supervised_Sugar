@@ -237,6 +237,12 @@ def coarse_training_with_supervised_regularization_and_dn_consistency(args):
 
     # ====================End of parameters====================
 
+    depth_np = np.load(args.depth_npy) 
+    normal_np = np.load(args.normal_npy)     
+
+    external_depth = torch.from_numpy(depth_np).float().cuda()
+    external_normal = torch.from_numpy(normal_np).float().cuda()
+
     if args.output_dir is None:
         if len(args.scene_path.split("/")[-1]) > 0:
             args.output_dir = os.path.join("./output/coarse", args.scene_path.split("/")[-1])
@@ -575,13 +581,7 @@ def coarse_training_with_supervised_regularization_and_dn_consistency(args):
                         scale_rendered_normals=False,
                         return_normal_maps=False,
                     ) # Depth regularization
-                    normal_error_pre = depth_normal_consistency_loss(
-                        depth=depth_img[None],  # Shape is (1, height, width) 
-                        normal=args.predicted_normal.permute(2, 0, 1),  # Shape is (3, height, width)
-                        camera=nerfmodel.training_cameras.gs_cameras[camera_indices.item()],
-                        scale_rendered_normals=True,
-                        return_normal_maps=False,
-                    )
+                    normal_error_pre = torch.abs(depth_img - external_depth[camera_indices.item()]).mean()
                     loss = loss + dn_consistency_factor * (normal_error + args.gamma * normal_error_pre)
                 
                 # SuGaR regularization
@@ -759,7 +759,7 @@ def coarse_training_with_supervised_regularization_and_dn_consistency(args):
                                     sdf_better_normal_loss = (samples_gaussian_normals - (normal_weights[..., None] * closest_gaussian_normals).sum(dim=-2)
                                                               ).pow(2).sum(dim=-1)  # Shape is (n_samples,)
                                     
-                                    external_normals = args.external_normals
+                                    external_normals = external_normal[camera_indices.item()].view(-1, 3).float().cuda()  # Shape is (height*width, 3)
                                     external_normals = external_normals * torch.sign(
                                         (external_normals * samples_gaussian_normals[:, None]).sum(dim=-1, keepdim=True)
                                         ).detach()

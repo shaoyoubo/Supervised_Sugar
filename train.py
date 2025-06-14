@@ -17,6 +17,12 @@ class AttrDict(dict):
 if __name__ == "__main__":
     # ----- Parser -----
     parser = argparse.ArgumentParser(description='Script to optimize a full SuGaR model.')
+
+    # Our custom arguments
+    parser.add_argument('--depth', type=str,
+                    help='外部 depth 文件')
+    parser.add_argument('--normal', type=str,
+                        help='外部 normal 文件')
     
     # Data and vanilla 3DGS checkpoint
     parser.add_argument('-s', '--scene_path',
