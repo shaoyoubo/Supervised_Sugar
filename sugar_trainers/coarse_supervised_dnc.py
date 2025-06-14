@@ -237,8 +237,8 @@ def coarse_training_with_supervised_regularization_and_dn_consistency(args):
 
     # ====================End of parameters====================
 
-    depth_np = np.load(args.depth_npy) 
-    normal_np = np.load(args.normal_npy)     
+    depth_np = np.load(args.depth) 
+    normal_np = np.load(args.normal)     
 
     external_depth = torch.from_numpy(depth_np).float().cuda()
     external_normal = torch.from_numpy(normal_np).float().cuda()

@@ -14,9 +14,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Script to optimize a full SuGaR model.')
 
     # Our custom arguments
-    parser.add_argument('--depth', type=str, required=True,
+    parser.add_argument('--depth', type=str, 
                     help='外部 depth 文件')
-    parser.add_argument('--normal', type=str, required=True,
+    parser.add_argument('--normal', type=str, 
                         help='外部 normal 文件')
     
     # Data and vanilla 3DGS checkpoint
@@ -140,6 +140,8 @@ if __name__ == "__main__":
     # Runs the train.py python script with the given arguments
     os.system(
         f"python train.py \
+            --depth {args.depth} \
+            --normal {args.normal} \
             -s {args.scene_path} \
             -c {gs_checkpoint_dir} \
             -i 7_000 \

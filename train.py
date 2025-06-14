@@ -122,8 +122,8 @@ if __name__ == "__main__":
     
     # ----- Optimize coarse SuGaR -----
     coarse_args = AttrDict({
-        'depth_npy': args.depth,
-        'normal_npy': args.normal,        
+        'depth': args.depth,
+        'normal': args.normal,        
         'checkpoint_path': args.checkpoint_path,
         'scene_path': args.scene_path,
         'iteration_to_load': args.iteration_to_load,
