@@ -483,7 +483,8 @@ def coarse_training_with_supervised_regularization_and_dn_consistency(args):
     iteration = 0
     train_losses = []
     t0 = time.time()
-    
+    lambda_t = LambdaScheduler.get_lambda(epoch)
+
     if initialize_from_trained_3dgs:
         iteration = 7000 - 1
     
@@ -581,8 +582,8 @@ def coarse_training_with_supervised_regularization_and_dn_consistency(args):
                         scale_rendered_normals=False,
                         return_normal_maps=False,
                     ) # Depth regularization
-                    normal_error_pre = torch.abs(depth_img - external_depth[camera_indices.item()]).mean()
-                    loss = loss + dn_consistency_factor * (normal_error + args.gamma * normal_error_pre)
+                    normal_error_pre = torch.abs(depth_img - args.gamma * external_depth[camera_indices.item()]).mean()
+                    loss = loss + dn_consistency_factor * ((1 - lambda_t) * normal_error + lambda_t * normal_error_pre)
                 
                 # SuGaR regularization
                 if regularize:
@@ -776,7 +777,6 @@ def coarse_training_with_supervised_regularization_and_dn_consistency(args):
                                     external_sdf_better_normal_loss = sdf_better_normal_loss + (samples_gaussian_normals - (externa_normal_weights[..., None] * closest_gaussian_normals).sum(dim=-2)
                                                                                   ).pow(2).sum(dim=-1)
 
-                                    lambda_t = LambdaScheduler.get_lambda(epoch)
                                     loss = loss + (1-lambda_t) * sdf_better_normal_factor * sdf_better_normal_loss.mean() + lambda_t * sdf_better_normal_factor * external_sdf_better_normal_loss.mean()
                             else:
                                 CONSOLE.log("WARNING: No gaussians available for sampling.")
