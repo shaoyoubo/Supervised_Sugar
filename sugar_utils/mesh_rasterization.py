@@ -99,7 +99,7 @@ class MeshRasterizer(torch.nn.Module):
             raise ValueError("cameras must be either CamerasWrapper, P3DCameras, GSCamera or list of GSCamera")
         
         if self.use_nvdiffrast:
-            self.gl_context = dr.RasterizeGLContext()
+            self.gl_context = dr.RasterizeCudaContext()
         else:
             self._p3d_mesh_rasterizer = P3DMeshRasterizer(
                 cameras=self.cameras.p3d_cameras,

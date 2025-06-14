@@ -1,11 +1,6 @@
+import os
 import argparse
 from sugar_utils.general_utils import str2bool
-from sugar_trainers.coarse_density import coarse_training_with_density_regularization
-from sugar_trainers.coarse_sdf import coarse_training_with_sdf_regularization
-from sugar_trainers.coarse_density_and_dn_consistency import coarse_training_with_density_regularization_and_dn_consistency
-from sugar_extractors.coarse_mesh import extract_mesh_from_coarse_sugar
-from sugar_trainers.refine import refined_training
-from sugar_extractors.refined_mesh import extract_mesh_and_texture_from_refined_sugar
 
 
 class AttrDict(dict):
@@ -18,17 +13,25 @@ if __name__ == "__main__":
     # ----- Parser -----
     parser = argparse.ArgumentParser(description='Script to optimize a full SuGaR model.')
 
+    # Our custom arguments
+    parser.add_argument('--depth', type=str, 
+                    help='depth file to use for the training. ')
+    parser.add_argument('--normal', type=str, 
+                        help='normal file to use for the training. ')
+    parser.add_argument('--strategy', type=str, default='const_1',
+                        help='Strategy to use for the time-dependent regularization. '
+                        'Can be "linear", "exp", "sigmoid", "const_1" or "const_0". Default is "const". '
+                        'If "const", the regularization will not change over time.')
     
     # Data and vanilla 3DGS checkpoint
     parser.add_argument('-s', '--scene_path',
                         type=str, 
                         help='(Required) path to the scene data to use.')  
-    parser.add_argument('-c', '--checkpoint_path',
-                        type=str, 
-                        help='(Required) path to the vanilla 3D Gaussian Splatting Checkpoint to load.')
-    parser.add_argument('-i', '--iteration_to_load', 
-                        type=int, default=7000, 
-                        help='iteration to load.')
+    
+    # Vanilla 3DGS optimization at beginning
+    parser.add_argument('--gs_output_dir', type=str, default=None,
+                        help='(Optional) If None, will automatically train a vanilla Gaussian Splatting model at the beginning of the training. '
+                        'Else, skips the vanilla Gaussian Splatting optimization and use the checkpoint in the provided directory.')
     
     # Regularization for coarse SuGaR
     parser.add_argument('-r', '--regularization_type', type=str,
@@ -56,7 +59,7 @@ if __name__ == "__main__":
                         help='Number of refinement iterations.')
     
     # (Optional) Parameters for textured mesh extraction
-    parser.add_argument('-t', '--export_uv_textured_mesh', type=str2bool, default=True, 
+    parser.add_argument('-t', '--export_obj', type=str2bool, default=True, 
                         help='If True, will export a textured mesh as an .obj file from the refined SuGaR model. '
                         'Computing a traditional colored UV texture should take less than 10 minutes.')
     parser.add_argument('--square_size',
@@ -109,91 +112,63 @@ if __name__ == "__main__":
     if args.refinement_time == 'long':
         args.refinement_iterations = 15_000
         print('Using long refinement time.')
-    if args.export_uv_textured_mesh:
+    if args.export_obj:
         print('Will export a UV-textured mesh as an .obj file.')
     if args.export_ply:
         print('Will export a ply file with the refined 3D Gaussians at the end of the training.')
-    
-    # ----- Optimize coarse SuGaR -----
-    coarse_args = AttrDict({
-        'checkpoint_path': args.checkpoint_path,
-        'scene_path': args.scene_path,
-        'iteration_to_load': args.iteration_to_load,
-        'output_dir': None,
-        'eval': args.eval,
-        'estimation_factor': 0.2,
-        'normal_factor': 0.2,
-        'gpu': args.gpu,
-        'white_background': args.white_background,
-    })
-    if args.regularization_type == 'sdf':
-        coarse_sugar_path = coarse_training_with_sdf_regularization(coarse_args)
-    elif args.regularization_type == 'density':
-        coarse_sugar_path = coarse_training_with_density_regularization(coarse_args)
-    elif args.regularization_type == 'dn_consistency':
-        coarse_sugar_path = coarse_training_with_density_regularization_and_dn_consistency(coarse_args)
-    else:
-        raise ValueError(f'Unknown regularization type: {args.regularization_type}')
-    
-    
-    # ----- Extract mesh from coarse SuGaR -----
-    coarse_mesh_args = AttrDict({
-        'scene_path': args.scene_path,
-        'checkpoint_path': args.checkpoint_path,
-        'iteration_to_load': args.iteration_to_load,
-        'coarse_model_path': coarse_sugar_path,
-        'surface_level': args.surface_level,
-        'decimation_target': args.n_vertices_in_mesh,
-        'project_mesh_on_surface_points': args.project_mesh_on_surface_points,
-        'mesh_output_dir': None,
-        'bboxmin': args.bboxmin,
-        'bboxmax': args.bboxmax,
-        'center_bbox': args.center_bbox,
-        'gpu': args.gpu,
-        'eval': args.eval,
-        'use_centers_to_extract_mesh': False,
-        'use_marching_cubes': False,
-        'use_vanilla_3dgs': False,
-    })
-    coarse_mesh_path = extract_mesh_from_coarse_sugar(coarse_mesh_args)[0]
-    
-    
-    # ----- Refine SuGaR -----
-    refined_args = AttrDict({
-        'scene_path': args.scene_path,
-        'checkpoint_path': args.checkpoint_path,
-        'mesh_path': coarse_mesh_path,      
-        'output_dir': None,
-        'iteration_to_load': args.iteration_to_load,
-        'normal_consistency_factor': 0.1,    
-        'gaussians_per_triangle': args.gaussians_per_triangle,        
-        'n_vertices_in_fg': args.n_vertices_in_mesh,
-        'refinement_iterations': args.refinement_iterations,
-        'bboxmin': args.bboxmin,
-        'bboxmax': args.bboxmax,
-        'export_ply': args.export_ply,
-        'eval': args.eval,
-        'gpu': args.gpu,
-        'white_background': args.white_background,
-    })
-    refined_sugar_path = refined_training(refined_args)
-    
-    
-    # ----- Extract mesh and texture from refined SuGaR -----
-    if args.export_uv_textured_mesh:
-        refined_mesh_args = AttrDict({
-            'scene_path': args.scene_path,
-            'iteration_to_load': args.iteration_to_load,
-            'checkpoint_path': args.checkpoint_path,
-            'refined_model_path': refined_sugar_path,
-            'mesh_output_dir': None,
-            'n_gaussians_per_surface_triangle': args.gaussians_per_triangle,
-            'square_size': args.square_size,
-            'eval': args.eval,
-            'gpu': args.gpu,
-            'postprocess_mesh': args.postprocess_mesh,
-            'postprocess_density_threshold': args.postprocess_density_threshold,
-            'postprocess_iterations': args.postprocess_iterations,
-        })
-        refined_mesh_path = extract_mesh_and_texture_from_refined_sugar(refined_mesh_args)
         
+    # Output directory for the vanilla 3DGS checkpoint
+    if args.gs_output_dir is None:
+        sep = os.path.sep
+        if len(args.scene_path.split(sep)[-1]) > 0:
+            gs_checkpoint_dir = os.path.join("output", "vanilla_gs", args.scene_path.split(sep)[-1])
+        else:
+            gs_checkpoint_dir = os.path.join("output", "vanilla_gs", args.scene_path.split(sep)[-2])
+        gs_checkpoint_dir = gs_checkpoint_dir + sep
+
+        # Trains a 3DGS scene for 7k iterations
+        white_background_str = '-w ' if args.white_background else ''
+        os.system(
+            f"CUDA_VISIBLE_DEVICES={args.gpu} python ./gaussian_splatting/train.py \
+                -s {args.scene_path} \
+                -m {gs_checkpoint_dir} \
+                {white_background_str}\
+                --iterations 7_000"
+        )
+    else:
+        print("A vanilla 3DGS checkpoint was provided. Skipping the vanilla 3DGS optimization.")
+        gs_checkpoint_dir = args.gs_output_dir
+        if gs_checkpoint_dir[-1] != os.path.sep:
+            gs_checkpoint_dir += os.path.sep
+    
+    # Runs the train.py python script with the given arguments
+    os.system(
+        f"python train_supervised.py \
+            --depth {args.depth} \
+            --normal {args.normal} \
+            --strategy {args.strategy} \
+            -s {args.scene_path} \
+            -c {gs_checkpoint_dir} \
+            -i 7_000 \
+            -r {args.regularization_type} \
+            -l {args.surface_level} \
+            -v {args.n_vertices_in_mesh} \
+            --project_mesh_on_surface_points {args.project_mesh_on_surface_points} \
+            -g {args.gaussians_per_triangle} \
+            -f {args.refinement_iterations} \
+            --bboxmin {args.bboxmin} \
+            --bboxmax {args.bboxmax} \
+            --center_bbox {args.center_bbox} \
+            -t {args.export_obj} \
+            --square_size {args.square_size} \
+            --postprocess_mesh {args.postprocess_mesh} \
+            --postprocess_density_threshold {args.postprocess_density_threshold} \
+            --postprocess_iterations {args.postprocess_iterations} \
+            --export_ply {args.export_ply} \
+            --low_poly {args.low_poly} \
+            --high_poly {args.high_poly} \
+            --refinement_time {args.refinement_time} \
+            --eval {args.eval} \
+            --gpu {args.gpu} \
+            --white_background {args.white_background}"
+    )

@@ -1,0 +1,3 @@
+use_sdf_estimation_loss = True
+enforce_samples_to_be_on_surface = False
+sdf_estimation_mode = 'density'

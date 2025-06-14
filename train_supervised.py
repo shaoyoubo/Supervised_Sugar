@@ -3,6 +3,9 @@ from sugar_utils.general_utils import str2bool
 from sugar_trainers.coarse_density import coarse_training_with_density_regularization
 from sugar_trainers.coarse_sdf import coarse_training_with_sdf_regularization
 from sugar_trainers.coarse_density_and_dn_consistency import coarse_training_with_density_regularization_and_dn_consistency
+from sugar_trainers.coarse_supervised_dnc import coarse_training_with_supervised_regularization_and_dn_consistency
+from sugar_trainers.coarse_supervised_sdf import coarse_training_with_supervised_sdf_regularization
+from sugar_trainers.coarse_supervised_sdf_with_depth import coarse_training_with_supervised_sdf_with_depth_regularization
 from sugar_extractors.coarse_mesh import extract_mesh_from_coarse_sugar
 from sugar_trainers.refine import refined_training
 from sugar_extractors.refined_mesh import extract_mesh_and_texture_from_refined_sugar
@@ -18,6 +21,17 @@ if __name__ == "__main__":
     # ----- Parser -----
     parser = argparse.ArgumentParser(description='Script to optimize a full SuGaR model.')
 
+    # Our custom arguments
+    parser.add_argument('--depth', type=str,
+                    help='depth file to use for the scene. ')
+    parser.add_argument('--normal', type=str,
+                        help='normal file to use for the scene. ')
+    parser.add_argument('--strategy', type=str, default='const_1',
+                        help='Strategy to use for the time-dependent regularization. '
+                        'Can be "linear", "exp", "sigmoid", "const_1" or "const_0". Default is "const_1". '
+                        'If "const_1", the regularization will not change over time.')
+    parser.add_argument('--depth_factor', type=float, default=0.2,
+                        help='Factor to use for the depth regularization for supervised sdf. Default is 0.2. ')
     
     # Data and vanilla 3DGS checkpoint
     parser.add_argument('-s', '--scene_path',
@@ -116,6 +130,10 @@ if __name__ == "__main__":
     
     # ----- Optimize coarse SuGaR -----
     coarse_args = AttrDict({
+        'depth': args.depth,
+        'normal': args.normal, 
+        'strategy': args.strategy,       
+        'depth_factor': args.depth_factor,
         'checkpoint_path': args.checkpoint_path,
         'scene_path': args.scene_path,
         'iteration_to_load': args.iteration_to_load,
@@ -132,12 +150,20 @@ if __name__ == "__main__":
         coarse_sugar_path = coarse_training_with_density_regularization(coarse_args)
     elif args.regularization_type == 'dn_consistency':
         coarse_sugar_path = coarse_training_with_density_regularization_and_dn_consistency(coarse_args)
+    elif args.regularization_type == 'supervised_dnc':
+        coarse_sugar_path = coarse_training_with_supervised_regularization_and_dn_consistency(coarse_args)
+    elif args.regularization_type == 'supervised_sdf':
+        coarse_sugar_path = coarse_training_with_supervised_sdf_regularization(coarse_args)
+    elif args.regularization_type == 'supervised_sdf_with_depth':
+        coarse_sugar_path = coarse_training_with_supervised_sdf_with_depth_regularization(coarse_args)
     else:
         raise ValueError(f'Unknown regularization type: {args.regularization_type}')
     
     
     # ----- Extract mesh from coarse SuGaR -----
     coarse_mesh_args = AttrDict({
+        'depth_npy': args.depth,
+        'normal_npy': args.normal,
         'scene_path': args.scene_path,
         'checkpoint_path': args.checkpoint_path,
         'iteration_to_load': args.iteration_to_load,
