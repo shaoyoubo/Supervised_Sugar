@@ -3,6 +3,7 @@ from sugar_utils.general_utils import str2bool
 from sugar_trainers.coarse_density import coarse_training_with_density_regularization
 from sugar_trainers.coarse_sdf import coarse_training_with_sdf_regularization
 from sugar_trainers.coarse_density_and_dn_consistency import coarse_training_with_density_regularization_and_dn_consistency
+from sugar_trainers.coarse_supervised_dnc import coarse_training_with_supervised_regularization_and_dn_consistency
 from sugar_extractors.coarse_mesh import extract_mesh_from_coarse_sugar
 from sugar_trainers.refine import refined_training
 from sugar_extractors.refined_mesh import extract_mesh_and_texture_from_refined_sugar
@@ -17,6 +18,12 @@ class AttrDict(dict):
 if __name__ == "__main__":
     # ----- Parser -----
     parser = argparse.ArgumentParser(description='Script to optimize a full SuGaR model.')
+
+    # Our custom arguments
+    parser.add_argument('--depth', type=str,
+                    help='外部 depth 文件')
+    parser.add_argument('--normal', type=str,
+                        help='外部 normal 文件')
     
     # Data and vanilla 3DGS checkpoint
     parser.add_argument('-s', '--scene_path',
@@ -115,6 +122,8 @@ if __name__ == "__main__":
     
     # ----- Optimize coarse SuGaR -----
     coarse_args = AttrDict({
+        'depth': args.depth,
+        'normal': args.normal,        
         'checkpoint_path': args.checkpoint_path,
         'scene_path': args.scene_path,
         'iteration_to_load': args.iteration_to_load,
@@ -131,12 +140,16 @@ if __name__ == "__main__":
         coarse_sugar_path = coarse_training_with_density_regularization(coarse_args)
     elif args.regularization_type == 'dn_consistency':
         coarse_sugar_path = coarse_training_with_density_regularization_and_dn_consistency(coarse_args)
+    elif args.regularization_type == 'supervised':
+        coarse_sugar_path = coarse_training_with_supervised_regularization_and_dn_consistency(coarse_args)
     else:
         raise ValueError(f'Unknown regularization type: {args.regularization_type}')
     
     
     # ----- Extract mesh from coarse SuGaR -----
     coarse_mesh_args = AttrDict({
+        'depth_npy': args.depth,
+        'normal_npy': args.normal,
         'scene_path': args.scene_path,
         'checkpoint_path': args.checkpoint_path,
         'iteration_to_load': args.iteration_to_load,
