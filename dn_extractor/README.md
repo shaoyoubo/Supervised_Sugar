@@ -61,3 +61,15 @@ python dsine_tot.py dsine.txt
 ```sh
 pip install geffnet
 ```
+
+# SuGaR
+
+python train_full_pipeline.py -s dataset/undistorted -r density --export_obj True
+python train_full_pipeline.py -s dataset/undistorted -r density --export_obj True --gs_output_dir ./output/vanilla_gs/undistorted
+
+```sh
+ROOT_DIR="dataset/undistorted"
+python train_full_pipeline.py -s $ROOT_DIR -r custom --export_obj True --gs_output_dir ./output/vanilla_gs/room_0
+
+python run_viewer.py -p ./output/refined_ply/colmap_output/sugarfine_3Dgs7000_densityestim02_sdfnorm02_level03_decim1000000_normalconsistency01_gaussperface1.ply
+```
