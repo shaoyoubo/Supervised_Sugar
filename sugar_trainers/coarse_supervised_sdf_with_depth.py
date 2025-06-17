@@ -596,48 +596,6 @@ def coarse_training_with_supervised_sdf_with_depth_regularization(args):
                                                 use_same_scale_in_all_directions=False,
                                                 point_colors=point_depth,
                                             )[..., 0]
-
-                                    # Sample depth at the same locations where we sample normals
-                                    valid_mask = (pts_projections[..., 0] >= 0) & (pts_projections[..., 0] < w) & \
-                                                (pts_projections[..., 1] >= 0) & (pts_projections[..., 1] < h)
-
-                                    if valid_mask.sum() > 0:
-                                        # Get integer pixel coordinates
-                                        pixel_y = pts_projections[valid_mask, 1].long().clamp(0, h-1)
-                                        pixel_x = pts_projections[valid_mask, 0].long().clamp(0, w-1)
-                                        
-                                        # Sample external depth at those positions
-                                        gt_depth = external_depth[camera_indices.item(), pixel_y, pixel_x]  # Shape: (n_valid_samples)
-                                        
-                                        # Get rendered depth at those positions (sampling from the depth map)
-                                        rendered_depth = depth[pixel_y, pixel_x]
-                                        
-                                        # Apply valid depth mask (filter out zero or negative depths)
-                                        depth_valid = (gt_depth > 0) & (rendered_depth > 0)
-                                        
-                                        if depth_valid.sum() > 0:
-                                            # Calculate Scale-Invariant Log RMSE Loss
-                                            log_rendered = torch.log(rendered_depth[depth_valid])
-                                            log_gt = torch.log(gt_depth[depth_valid])
-                                            
-                                            # Calculate difference
-                                            diff = log_rendered - log_gt
-                                            
-                                            # Remove mean difference (makes it scale-invariant)
-                                            diff_minus_mean = diff - diff.mean()
-                                            
-                                            # Calculate squared error
-                                            si_log_rmse = torch.mean(diff_minus_mean ** 2)
-                                            
-                                            # Add to loss with lambda schedule to gradually reduce impact
-                                            depth_factor = args.depth_factor  # Add this to your args
-                                            external_depth_loss = depth_factor * si_log_rmse
-                                            
-                                            # Apply lambda schedule similar to normal loss
-                                            loss = loss + (1 - lambda_t.get_lambda(iteration)) * external_depth_loss
-                                            
-                                            if iteration % print_loss_every_n_iterations == 0:
-                                                CONSOLE.print("External depth SI-Log RMSE:", si_log_rmse.item())
                                 else:
                                     with torch.no_grad():
                                         point_depth = fov_camera.get_world_to_view_transform().transform_points(sugar.points)[..., 2:].expand(-1, 3)
@@ -715,7 +673,7 @@ def coarse_training_with_supervised_sdf_with_depth_regularization(args):
                                                 sdf_estimation_loss = ((sdf_values - sdf_estimation.abs()) / sdf_sample_std).pow(2)
                                             else:
                                                 sdf_estimation_loss = (sdf_values - sdf_estimation.abs()).abs() / sdf_sample_std
-                                            loss = loss + sdf_estimation_factor * sdf_estimation_loss.clamp(max=10.*sugar.get_cameras_spatial_extent()).mean()
+                                            loss = loss + lambda_t.get(iteration)["sdf_estimation"] * sdf_estimation_factor * sdf_estimation_loss.clamp(max=10.*sugar.get_cameras_spatial_extent()).mean()
                                         elif sdf_estimation_mode == 'density':
                                             beta = fields['beta'][proj_mask]
                                             densities = fields['density'][proj_mask]
@@ -724,7 +682,7 @@ def coarse_training_with_supervised_sdf_with_depth_regularization(args):
                                                 sdf_estimation_loss = ((densities - target_densities)).pow(2)
                                             else:
                                                 sdf_estimation_loss = (densities - target_densities).abs()
-                                            loss = loss + sdf_estimation_factor * sdf_estimation_loss.mean()
+                                            loss = loss + lambda_t.get(iteration)["sdf_estimation"] * sdf_estimation_factor * sdf_estimation_loss.mean()
                                         else:
                                             raise ValueError(f"Unknown sdf_estimation_mode: {sdf_estimation_mode}")
 
@@ -800,17 +758,34 @@ def coarse_training_with_supervised_sdf_with_depth_regularization(args):
                                         
                                         # Use lambda_t to transition between losses
                                         loss = loss + sdf_better_normal_factor * (
-                                            (1-lambda_t.get_lambda(iteration)) * sdf_better_normal_loss.mean() + 
-                                            lambda_t.get_lambda(iteration) * external_sdf_better_normal_loss.mean()
+                                            lambda_t.get(iteration)["sdf_better_normal"] * sdf_better_normal_loss.mean() + 
+                                            lambda_t.get(iteration)["external_sdf_better_normal"] * external_sdf_better_normal_loss.mean()
                                         )
-                                        CONSOLE.print("Current SDF better normal loss:", 
-                                            sdf_better_normal_loss.mean().item(), 
-                                            "External SDF better normal loss:", 
-                                            external_sdf_better_normal_loss.mean().item())
-                                        CONSOLE.print("Using lambda_t:", lambda_t.get_lambda(iteration-7000))
+
+                                        gt_depth = external_depth[camera_indices.item(), pixel_y, pixel_x]
+                                        rendered_depth = depth[pixel_y, pixel_x]
+                                        depth_valid = (gt_depth > 0) & (rendered_depth > 0)
+                                        if depth_valid.sum() > 0:
+                                            log_rendered = torch.log(rendered_depth[depth_valid])
+                                            log_gt = torch.log(gt_depth[depth_valid])
+                                            diff = log_rendered - log_gt
+                                            diff_minus_mean = diff - diff.mean()
+                                            si_log_rmse = torch.mean(diff_minus_mean ** 2)
+                                            depth_factor = args.depth_factor  # Add this to your args
+                                            external_depth_loss = depth_factor * si_log_rmse
+                                            loss = loss + lambda_t.get(iteration)["external_depth"] * external_depth_loss
+                                        
+                                        if iteration % print_loss_every_n_iterations == 0:
+                                            CONSOLE.print("External depth SI-Log RMSE:", si_log_rmse.item())
+                                            CONSOLE.print("Current SDF better normal loss:", 
+                                                sdf_better_normal_loss.mean().item(), 
+                                                "External SDF better normal loss:", 
+                                                external_sdf_better_normal_loss.mean().item())
+                                            CONSOLE.print("Using lambda_t:", lambda_t.get(iteration))
                                     else:
                                         # If no valid projections, just use the original loss
                                         loss = loss + sdf_better_normal_factor * sdf_better_normal_loss.mean()
+
                             else:
                                 CONSOLE.log("WARNING: No gaussians available for sampling.")
                                 

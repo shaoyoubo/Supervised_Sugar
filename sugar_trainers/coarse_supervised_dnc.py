@@ -719,7 +719,7 @@ def coarse_training_with_supervised_regularization_and_dn_consistency(args):
                                                 # sdf_estimation_loss = ((densities - target_densities)).pow(2)
                                             else:
                                                 sdf_estimation_loss = (densities - target_densities).abs()
-                                            loss = loss + sdf_estimation_factor * sdf_estimation_loss.mean()
+                                            loss = loss + lambda_t.get(iteration)["sdf_estimation"] * sdf_estimation_factor * sdf_estimation_loss.mean()
                                         else:
                                             raise ValueError(f"Unknown sdf_estimation_mode: {sdf_estimation_mode}")
 
@@ -814,8 +814,8 @@ def coarse_training_with_supervised_regularization_and_dn_consistency(args):
                                         
                                         # Use lambda_t to transition between losses
                                         loss = loss + sdf_better_normal_factor * (
-                                            (1-lambda_t.get_lambda(iteration)) * sdf_better_normal_loss.mean() + 
-                                            lambda_t.get_lambda(iteration) * external_sdf_better_normal_loss.mean()
+                                            lambda_t.get(iteration)["sdf_better_normal"] * sdf_better_normal_loss.mean() + 
+                                            lambda_t.get(iteration)["external_sdf_better_normal"] * external_sdf_better_normal_loss.mean()
                                         )
                                         CONSOLE.print("Current SDF better normal loss:", 
                                             sdf_better_normal_loss.mean().item(), 

@@ -159,41 +159,41 @@ if __name__ == "__main__":
     
     
     # ----- Refine SuGaR -----
-    refined_args = AttrDict({
-        'scene_path': args.scene_path,
-        'checkpoint_path': args.checkpoint_path,
-        'mesh_path': coarse_mesh_path,      
-        'output_dir': None,
-        'iteration_to_load': args.iteration_to_load,
-        'normal_consistency_factor': 0.1,    
-        'gaussians_per_triangle': args.gaussians_per_triangle,        
-        'n_vertices_in_fg': args.n_vertices_in_mesh,
-        'refinement_iterations': args.refinement_iterations,
-        'bboxmin': args.bboxmin,
-        'bboxmax': args.bboxmax,
-        'export_ply': args.export_ply,
-        'eval': args.eval,
-        'gpu': args.gpu,
-        'white_background': args.white_background,
-    })
-    refined_sugar_path = refined_training(refined_args)
+    # refined_args = AttrDict({
+    #     'scene_path': args.scene_path,
+    #     'checkpoint_path': args.checkpoint_path,
+    #     'mesh_path': coarse_mesh_path,      
+    #     'output_dir': None,
+    #     'iteration_to_load': args.iteration_to_load,
+    #     'normal_consistency_factor': 0.1,    
+    #     'gaussians_per_triangle': args.gaussians_per_triangle,        
+    #     'n_vertices_in_fg': args.n_vertices_in_mesh,
+    #     'refinement_iterations': args.refinement_iterations,
+    #     'bboxmin': args.bboxmin,
+    #     'bboxmax': args.bboxmax,
+    #     'export_ply': args.export_ply,
+    #     'eval': args.eval,
+    #     'gpu': args.gpu,
+    #     'white_background': args.white_background,
+    # })
+    # refined_sugar_path = refined_training(refined_args)
     
     
-    # ----- Extract mesh and texture from refined SuGaR -----
-    if args.export_uv_textured_mesh:
-        refined_mesh_args = AttrDict({
-            'scene_path': args.scene_path,
-            'iteration_to_load': args.iteration_to_load,
-            'checkpoint_path': args.checkpoint_path,
-            'refined_model_path': refined_sugar_path,
-            'mesh_output_dir': None,
-            'n_gaussians_per_surface_triangle': args.gaussians_per_triangle,
-            'square_size': args.square_size,
-            'eval': args.eval,
-            'gpu': args.gpu,
-            'postprocess_mesh': args.postprocess_mesh,
-            'postprocess_density_threshold': args.postprocess_density_threshold,
-            'postprocess_iterations': args.postprocess_iterations,
-        })
-        refined_mesh_path = extract_mesh_and_texture_from_refined_sugar(refined_mesh_args)
+    # # ----- Extract mesh and texture from refined SuGaR -----
+    # if args.export_uv_textured_mesh:
+    #     refined_mesh_args = AttrDict({
+    #         'scene_path': args.scene_path,
+    #         'iteration_to_load': args.iteration_to_load,
+    #         'checkpoint_path': args.checkpoint_path,
+    #         'refined_model_path': refined_sugar_path,
+    #         'mesh_output_dir': None,
+    #         'n_gaussians_per_surface_triangle': args.gaussians_per_triangle,
+    #         'square_size': args.square_size,
+    #         'eval': args.eval,
+    #         'gpu': args.gpu,
+    #         'postprocess_mesh': args.postprocess_mesh,
+    #         'postprocess_density_threshold': args.postprocess_density_threshold,
+    #         'postprocess_iterations': args.postprocess_iterations,
+    #     })
+    #     refined_mesh_path = extract_mesh_and_texture_from_refined_sugar(refined_mesh_args)
         

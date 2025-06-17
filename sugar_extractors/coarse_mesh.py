@@ -166,7 +166,7 @@ def extract_mesh_from_coarse_sugar(args):
             sugar._sh_coordinates_rest[...] = nerfmodel.gaussians._features_rest.detach()
     else:
         CONSOLE.print(f"\nLoading the coarse SuGaR model from path {sugar_checkpoint_path}...")
-        checkpoint = torch.load(sugar_checkpoint_path, map_location=nerfmodel.device)
+        checkpoint = torch.load(sugar_checkpoint_path, map_location=nerfmodel.device, weights_only=False)
         colors = SH2RGB(checkpoint['state_dict']['_sh_coordinates_dc'][:, 0, :])
         sugar = SuGaR(
             nerfmodel=nerfmodel,

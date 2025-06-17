@@ -471,7 +471,7 @@ def coarse_training_with_supervised_sdf_regularization(args):
     iteration = 0
     train_losses = []
     t0 = time.time()
-    lambda_t = LambdaScheduler(strategy=args.strategy)
+    lambda_t = LambdaScheduler(strategy=args.strategy, start_t=9000, end_t=11000)
 
     if initialize_from_trained_3dgs:
         iteration = 7000 - 1
@@ -673,7 +673,8 @@ def coarse_training_with_supervised_sdf_regularization(args):
                                                 sdf_estimation_loss = ((sdf_values - sdf_estimation.abs()) / sdf_sample_std).pow(2)
                                             else:
                                                 sdf_estimation_loss = (sdf_values - sdf_estimation.abs()).abs() / sdf_sample_std
-                                            loss = loss + sdf_estimation_factor * sdf_estimation_loss.clamp(max=10.*sugar.get_cameras_spatial_extent()).mean()
+                                            loss = loss + lambda_t.get(iteration)["sdf_estimation"] * sdf_estimation_factor * sdf_estimation_loss.clamp(max=10.*sugar.get_cameras_spatial_extent()).mean()
+                                            CONSOLE.print("Sdf Estimation Loss", sdf_estimation_loss.mean())
                                         elif sdf_estimation_mode == 'density':
                                             beta = fields['beta'][proj_mask]
                                             densities = fields['density'][proj_mask]
@@ -682,7 +683,7 @@ def coarse_training_with_supervised_sdf_regularization(args):
                                                 sdf_estimation_loss = ((densities - target_densities)).pow(2)
                                             else:
                                                 sdf_estimation_loss = (densities - target_densities).abs()
-                                            loss = loss + sdf_estimation_factor * sdf_estimation_loss.mean()
+                                            loss = loss + lambda_t.get(iteration)["sdf_estimation"] * sdf_estimation_factor * sdf_estimation_loss.mean()
                                         else:
                                             raise ValueError(f"Unknown sdf_estimation_mode: {sdf_estimation_mode}")
 
@@ -758,14 +759,14 @@ def coarse_training_with_supervised_sdf_regularization(args):
                                         
                                         # Use lambda_t to transition between losses
                                         loss = loss + sdf_better_normal_factor * (
-                                            (1-lambda_t.get_lambda(iteration)) * sdf_better_normal_loss.mean() + 
-                                            lambda_t.get_lambda(iteration) * external_sdf_better_normal_loss.mean()
+                                            lambda_t.get(iteration)["sdf_better_normal"] * sdf_better_normal_loss.mean() + 
+                                            lambda_t.get(iteration)["external_sdf_better_normal"] * external_sdf_better_normal_loss.mean()
                                         )
                                         CONSOLE.print("Current SDF better normal loss:", 
                                             sdf_better_normal_loss.mean().item(), 
                                             "External SDF better normal loss:", 
                                             external_sdf_better_normal_loss.mean().item())
-                                        CONSOLE.print("Using lambda_t:", lambda_t.get_lambda(iteration-7000))
+                                        CONSOLE.print("Using lambda_t:", lambda_t.get(iteration))
                                     else:
                                         # If no valid projections, just use the original loss
                                         loss = loss + sdf_better_normal_factor * sdf_better_normal_loss.mean()

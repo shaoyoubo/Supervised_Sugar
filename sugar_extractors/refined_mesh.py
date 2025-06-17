@@ -108,7 +108,7 @@ def extract_mesh_and_texture_from_refined_sugar(args):
     o3d_mesh = o3d.io.read_triangle_mesh(sugar_mesh_path)
     
     # --- Loading refined SuGaR model ---
-    checkpoint = torch.load(refined_model_path, map_location=nerfmodel.device)
+    checkpoint = torch.load(refined_model_path, map_location=nerfmodel.device, weights_only=False)
     refined_sugar = SuGaR(
         nerfmodel=nerfmodel,
         points=checkpoint['state_dict']['_points'],

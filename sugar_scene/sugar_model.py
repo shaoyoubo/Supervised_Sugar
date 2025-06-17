@@ -2391,7 +2391,7 @@ class SuGaR(nn.Module):
         checkpoint['state_dict'] = self.state_dict()
         for k, v in kwargs.items():
             checkpoint[k] = v
-        torch.save(checkpoint, path)        
+        torch.save(checkpoint, path)      
 
 
 def load_refined_model(refined_sugar_path, nerfmodel:GaussianSplattingWrapper, device=None):
@@ -2399,7 +2399,7 @@ def load_refined_model(refined_sugar_path, nerfmodel:GaussianSplattingWrapper, d
         if nerfmodel is None:
             raise ValueError("You must provide a device if nerfmodel is None.")
         device = nerfmodel.device
-    checkpoint = torch.load(refined_sugar_path, map_location=device)
+    checkpoint = torch.load(refined_sugar_path, map_location=device, weights_only=False)
     n_faces = checkpoint['state_dict']['_surface_mesh_faces'].shape[0]
     n_gaussians = checkpoint['state_dict']['_scales'].shape[0]
     n_gaussians_per_surface_triangle = n_gaussians // n_faces

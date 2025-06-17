@@ -1,7 +1,28 @@
 python train_supervised_full_pipeline.py \
-    --depth dataset/undistorted/depth.npy \
-    --normal dataset/undistorted/normal.npy \
-    -s dataset/undistorted \
+    --depth dataset/resized/depth.npy \
+    --normal dataset/resized/normal.npy \
+    -s dataset/resized \
     -r "supervised_sdf" \
-    --strategy "const_0" \
-    --gs_output_dir "output/vanilla_gs/undistorted" 
+    --strategy "const_1" \
+    --gs_output_dir "output/vanilla_gs/resized" &&
+python train_supervised_full_pipeline.py \
+    --depth dataset/resized/depth.npy \
+    --normal dataset/resized/normal.npy \
+    -s dataset/resized \
+    -r "supervised_sdf" \
+    --strategy "linear2" \
+    --gs_output_dir "output/vanilla_gs/resized" &&
+python train_supervised_full_pipeline.py \
+    --depth dataset/resized/depth.npy \
+    --normal dataset/resized/normal.npy \
+    -s dataset/resized \
+    -r "supervised_sdf" \
+    --strategy "custom_1" \
+    --gs_output_dir "output/vanilla_gs/resized" &&
+python train_supervised_full_pipeline.py \
+    --depth dataset/resized/depth.npy \
+    --normal dataset/resized/normal.npy \
+    -s dataset/resized \
+    -r "supervised_sdf" \
+    --strategy "custom_2" \
+    --gs_output_dir "output/vanilla_gs/resized"

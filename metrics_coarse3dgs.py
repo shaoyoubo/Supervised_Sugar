@@ -41,6 +41,7 @@ if __name__ == "__main__":
                         help='iteration to load for vanilla 3DGS.')
     parser.add_argument('-e', '--estimation_factor', type=float, default=0.2, 
                         help='Estimation factor to load for coarse model.')
+    parser.add_argument('-n', '--normal_factor', type=float, default=0.2)
     parser.add_argument('-r', '--regularization_type', type=str, 
                         help='(Required) Type of regularization to evaluate for coarse SuGaR. Can be "sdf", "density", or "dn_consistency".')
     
@@ -68,7 +69,7 @@ if __name__ == "__main__":
     coarse_iteration_to_load = args.iteration_to_load
     coarse_estimation_factor = args.estimation_factor
     estim_method = args.regularization_type
-    coarse_normal_factor = 0.2
+    coarse_normal_factor = args.normal_factor
         
     # --- Evaluation parameters ---
     evaluate_vanilla = args.evaluate_vanilla
@@ -113,7 +114,7 @@ if __name__ == "__main__":
         nerfmodel_30k = GaussianSplattingWrapper(
             source_path=source_path,
             output_path=gs_checkpoint_path,
-            iteration_to_load=30_000,
+            iteration_to_load=7000,
             load_gt_images=True,
             eval_split=True,
             eval_split_interval=n_skip_images_for_eval_split,
@@ -186,6 +187,8 @@ if __name__ == "__main__":
             
             # Setup paths for coarse model
             coarse_estimation_factor_str = str(coarse_estimation_factor).replace('.', '')
+            if(int(coarse_normal_factor)==coarse_normal_factor):
+                coarse_normal_factor=int(coarse_normal_factor)
             normal_factor_str = str(coarse_normal_factor).replace('.', '')
             
             coarse_model_base_path = f'sugarcoarse_3Dgs{coarse_iteration_to_load}_{args.strategy}_{estim_method}estim{coarse_estimation_factor_str}_sdfnorm{normal_factor_str}/'
@@ -196,7 +199,7 @@ if __name__ == "__main__":
             
             try:
                 # Load coarse model
-                checkpoint = torch.load(coarse_model_path, map_location=nerfmodel_30k.device)
+                checkpoint = torch.load(coarse_model_path, map_location=nerfmodel_30k.device, weights_only=False)
                 coarse_sugar = SuGaR(
                     nerfmodel=nerfmodel_30k,
                     points=checkpoint['state_dict']['_points'],

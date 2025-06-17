@@ -187,7 +187,8 @@ class GaussianSplattingWrapper:
         self,
         nerf_cameras:CamerasWrapper=None, 
         camera_indices:int=0,
-        return_whole_package=False):
+        return_whole_package=False,
+        override_color=None):
         """Render an image with Gaussian Splatting rasterizer.
 
         Args:
@@ -212,6 +213,7 @@ class GaussianSplattingWrapper:
                             self.pipeline_params, 
                             # bg_color=torch.zeros(3, device='cuda'),
                             bg_color=self.background,
+                            override_color=override_color
                             )
         
         if return_whole_package:
