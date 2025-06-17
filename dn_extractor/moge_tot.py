@@ -95,4 +95,4 @@ def extract(project_folder, device, resolution_level = 9, num_tokens = None, use
         np.save(str(normal_folder / f'normal.npy'), normal_numpy_array)
 
 if __name__ == "__main__":
-    extract("/root/Projects/Supervised_Sugar/dataset/resized/", torch.device("cuda:0"), output_normal=True)
+    extract("/root/Projects/Supervised_Sugar/dataset/room_0/", torch.device("cuda:0"), output_normal=True)
