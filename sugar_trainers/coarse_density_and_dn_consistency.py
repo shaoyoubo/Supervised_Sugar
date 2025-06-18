@@ -775,7 +775,7 @@ def coarse_training_with_density_regularization_and_dn_consistency(args):
                                         else:
                                             sdf_sample_std = sugar.get_cameras_spatial_extent() / 10.
                                     
-                                    if use_sdf_estimation_loss:
+                                    if use_sdf_estimation_loss: # sdf estimation loss
                                         if sdf_estimation_mode == 'sdf':
                                             sdf_values = fields['sdf'][proj_mask]
                                             if squared_sdf_estimation_loss:
@@ -795,14 +795,14 @@ def coarse_training_with_density_regularization_and_dn_consistency(args):
                                         else:
                                             raise ValueError(f"Unknown sdf_estimation_mode: {sdf_estimation_mode}")
 
-                                    if enforce_samples_to_be_on_surface:
+                                    if enforce_samples_to_be_on_surface: # sample on surface
                                         if squared_samples_on_surface_loss:
                                             samples_on_surface_loss = (sdf_estimation / sdf_sample_std).pow(2)
                                         else:
                                             samples_on_surface_loss = sdf_estimation.abs() / sdf_sample_std
                                         loss = loss + samples_on_surface_factor * samples_on_surface_loss.clamp(max=10.*sugar.get_cameras_spatial_extent()).mean()
                                         
-                                if use_sdf_better_normal_loss and (iteration > start_sdf_better_normal_from):
+                                if use_sdf_better_normal_loss and (iteration > start_sdf_better_normal_from): # sdf better normal
                                     if iteration == start_sdf_better_normal_from + 1:
                                         CONSOLE.print("\n---INFO---\nStarting SDF better normal loss.")
                                     closest_gaussians_idx = sugar.knn_idx[sdf_gaussian_idx]
@@ -833,7 +833,7 @@ def coarse_training_with_density_regularization_and_dn_consistency(args):
                                     loss = loss + sdf_better_normal_factor * sdf_better_normal_loss.mean()
                             else:
                                 CONSOLE.log("WARNING: No gaussians available for sampling.")
-                                
+
             else:
                 loss = 0.
                 
