@@ -6,7 +6,7 @@
 
 ```
 @software{shao2025spsugar,
-  author = {Shao, Youbo and Wu, Zhengkun and Xu, Wenxin},
+  author = {Shao, Youbo and Wu, Yuyang and Zhang, Kaixin},
   title = {Supervised SuGaR: Supervised Surface Aligned Gaussian Splatting},
   url = {https://github.com/shaoyoubo/Supervised_Sugar},
   year = {2025},
