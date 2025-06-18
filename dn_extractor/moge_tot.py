@@ -89,10 +89,10 @@ def extract(project_folder, device, resolution_level = 9, num_tokens = None, use
                 cv2.imwrite(str(normal_folder / f'{image_file.stem}.png'), cv2.cvtColor(colorize_normal(current_normal_data), cv2.COLOR_RGB2BGR))
     
     print(f"Generated depth numpy shape: {depth_numpy_array.shape}")
-    np.save(str(depth_folder / f'depth.npy'), depth_numpy_array)
+    np.save(str(project_folder / f'depth.npy'), depth_numpy_array)
     if output_normal:
         print(f"Generated normal numpy shape: {normal_numpy_array.shape}")
-        np.save(str(normal_folder / f'normal.npy'), normal_numpy_array)
+        np.save(str(project_folder / f'normal.npy'), normal_numpy_array)
 
 if __name__ == "__main__":
     extract("/root/Projects/Supervised_Sugar/dataset/room_0/", torch.device("cuda:0"), output_normal=True)

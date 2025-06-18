@@ -16,17 +16,27 @@
 
 # Overview
 
-We implement 
+
 
 # Installation
 
 Follow the installation of [SuGaR](https://anttwo.github.io/sugar/).
 
-# Reproduction
+For dataset generation, run `git submodule init` to download [MoGe](https://github.com/microsoft/MoGe.git).
+
+# Usage
 
 ## Dataset
 
+1. Start from a [COLMAP](https://github.com/colmap/colmap) dataset.
 
+2. Set correct folder path in `dn_extractor/moge_tot.py`, then run `dn_extractor/moge_tot.py`.
+
+The folder should have `images` subfolder (multi-view images) and `sparse/0/` subfolder (sparse reconstruction of COLMAP).
+
+This script will generate `depth.npy` (estimated depth map) and `normal.npy` (estimated normal map) under the folder.
+
+3. If you want to reproduce our result, download Truck dataset from [Tanks&Temples](https://www.tanksandtemples.org/download/), resize the images to $360 \times 640$, save to `dataset/resized`, then follow the above steps.
 
 ## Training
 
