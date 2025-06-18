@@ -159,6 +159,8 @@ if __name__ == "__main__":
     else:
         raise ValueError(f'Unknown regularization type: {args.regularization_type}')
     
+    #coarse_sugar_path = "./output/coarse/resized/sugarcoarse_3Dgs7000_custom_3_supervised_sdfestim02_sdfnorm02/15000.pt"
+    
     
     # ----- Extract mesh from coarse SuGaR -----
     coarse_mesh_args = AttrDict({

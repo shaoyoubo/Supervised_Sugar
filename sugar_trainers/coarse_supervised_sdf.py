@@ -762,11 +762,11 @@ def coarse_training_with_supervised_sdf_regularization(args):
                                             lambda_t.get(iteration)["sdf_better_normal"] * sdf_better_normal_loss.mean() + 
                                             lambda_t.get(iteration)["external_sdf_better_normal"] * external_sdf_better_normal_loss.mean()
                                         )
-                                        CONSOLE.print("Current SDF better normal loss:", 
-                                            sdf_better_normal_loss.mean().item(), 
-                                            "External SDF better normal loss:", 
-                                            external_sdf_better_normal_loss.mean().item())
-                                        CONSOLE.print("Using lambda_t:", lambda_t.get(iteration))
+                                        # CONSOLE.print("Current SDF better normal loss:", 
+                                        #     sdf_better_normal_loss.mean().item(), 
+                                        #     "External SDF better normal loss:", 
+                                        #     external_sdf_better_normal_loss.mean().item())
+                                        #CONSOLE.print("Using lambda_t:", lambda_t.get(iteration))
                                     else:
                                         # If no valid projections, just use the original loss
                                         loss = loss + sdf_better_normal_factor * sdf_better_normal_loss.mean()

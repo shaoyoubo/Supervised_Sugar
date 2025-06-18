@@ -28,10 +28,11 @@ class LambdaScheduler:
                 "external_sdf_better_normal": 1 - lambda_t,
                 "external_depth": 1 - lambda_t,
             }
-        elif self.strategy == 'exp':
-            k = self.params.get('k', 5e-4)
+        elif self.strategy == 'linear3':
             start_t = self.params.get('start_t', 9000)
-            lambda_t = math.exp(-k * (t - start_t))
+            end_t = 13000
+            duration = end_t - start_t
+            lambda_t = max(0.0, min(1.0, (t - start_t) / duration))
             return {
                 "sdf_estimation": lambda_t,
                 "sdf_better_normal": lambda_t,
@@ -111,5 +112,12 @@ class LambdaScheduler:
                     "external_sdf_better_normal": 1.5,
                     "external_depth": 0,
                 }
+        elif self.strategy == 'custom_3':
+            return {
+                "sdf_estimation": 1,
+                "sdf_better_normal": 1,
+                "external_sdf_better_normal": 1,
+                "external_depth": 1,
+            }
         else:
             raise ValueError("Unknown lambda schedule")
